@@ -33,14 +33,11 @@ public final class VersionHelper {
     private static List<InventoryType> VALID_INVENTORY_TYPES = null;
 
     private static final List<InventoryType> CHEST_INVENTORY_TYPES = List.of(
-            InventoryType.BARREL,
             InventoryType.CHEST,
             InventoryType.CRAFTING,
             InventoryType.CREATIVE,
             InventoryType.ENDER_CHEST,
-            InventoryType.LECTERN,
-            InventoryType.MERCHANT,
-            InventoryType.SHULKER_BOX
+            InventoryType.MERCHANT
     );
 
     public static List<InventoryType> getValidInventoryTypes() {

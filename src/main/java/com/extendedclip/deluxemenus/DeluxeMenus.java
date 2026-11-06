@@ -12,14 +12,13 @@ import com.extendedclip.deluxemenus.listener.PlayerListener;
 import com.extendedclip.deluxemenus.menu.Menu;
 import com.extendedclip.deluxemenus.menu.options.HeadType;
 import com.extendedclip.deluxemenus.menu.options.MenuOptions;
-import com.extendedclip.deluxemenus.persistentmeta.PersistentMetaHandler;
 import com.extendedclip.deluxemenus.placeholder.Expansion;
 import com.extendedclip.deluxemenus.updatechecker.UpdateChecker;
+import com.extendedclip.deluxemenus.utils.AdventureUtils;
 import com.extendedclip.deluxemenus.utils.DebugLevel;
 import com.extendedclip.deluxemenus.utils.Messages;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
-import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import net.kyori.adventure.text.Component;
 import org.bstats.bukkit.Metrics;
 import org.bstats.charts.AdvancedPie;
@@ -44,7 +43,6 @@ public class DeluxeMenus extends JavaPlugin {
 
     private static final DebugLevel STACKTRACE_PRINT_LEVEL = DebugLevel.MEDIUM;
 
-    private PersistentMetaHandler persistentMetaHandler;
     private MenuItemMarker menuItemMarker;
     private EphemeralCooldownManager ephemeralCooldownManager;
 
@@ -65,7 +63,6 @@ public class DeluxeMenus extends JavaPlugin {
             return;
         }
 
-        this.persistentMetaHandler = new PersistentMetaHandler(this);
         this.menuItemMarker = new MenuItemMarker(this);
         new DupeFixer(this, this.menuItemMarker).register();
 
@@ -146,11 +143,11 @@ public class DeluxeMenus extends JavaPlugin {
     }
 
     public void sms(CommandSender s, Component msg) {
-        s.sendMessage(msg);
+        AdventureUtils.send(s, msg);
     }
 
     public void sms(CommandSender s, Messages msg) {
-        s.sendMessage(msg.message());
+        sms(s, msg.message());
     }
 
     public void debug(@NotNull final DebugLevel messageDebugLevel, @NotNull final Level level, @NotNull final String... messages) {
@@ -173,10 +170,6 @@ public class DeluxeMenus extends JavaPlugin {
 
     public VaultHook getVault() {
         return vaultHook;
-    }
-
-    public PersistentMetaHandler getPersistentMetaHandler() {
-        return persistentMetaHandler;
     }
 
     public EphemeralCooldownManager getEphemeralCooldownManager() {
@@ -222,7 +215,7 @@ public class DeluxeMenus extends JavaPlugin {
     }
 
     private void setUpItemHooks() {
-        this.head = new ItemStack(Material.PLAYER_HEAD, 1);
+        this.head = new ItemStack(Material.SKULL_ITEM, 1, (short) 3);
 
         this.itemHooks = new HashMap<>();
 
@@ -232,71 +225,13 @@ public class DeluxeMenus extends JavaPlugin {
         this.itemHooks.put(HeadType.NAMED.getHookName(), namedHeadHook);
         this.itemHooks.put(HeadType.BASE64.getHookName(), new BaseHeadHook(this));
         this.itemHooks.put(HeadType.TEXTURE.getHookName(), textureHeadHook);
-
-        if (Bukkit.getPluginManager().isPluginEnabled("HeadDatabase")) {
-            try {
-                Class.forName("me.arcaniax.hdb.api.HeadDatabaseAPI");
-                this.itemHooks.put(HeadType.HDB.getHookName(), new HeadDatabaseHook(this));
-            } catch (ClassNotFoundException ignored) {
-                // We are looking for this specific class because we've had issues with other plugins being named HeadDatabase
-                // in the past
-            }
-        }
-
-        if (Bukkit.getPluginManager().isPluginEnabled("HeadDB")) {
-            try {
-                Class.forName("io.github.silentdevelopment.headdb.HeadDBService");
-                this.itemHooks.put(HeadType.HEADDB.getHookName(), new HeadDBHook(this, textureHeadHook));
-            } catch (ClassNotFoundException ignored) {
-                // We are looking for this specific class to avoid hooking into unrelated plugins named HeadDB.
-            }
-        }
-
-        if (Bukkit.getPluginManager().isPluginEnabled("CraftEngine")) {
-            this.itemHooks.put("craftengine", new CraftEngineHook());
-        }
-
-        if (Bukkit.getPluginManager().isPluginEnabled("ItemsAdder")) {
-            this.itemHooks.put("itemsadder", new ItemsAdderHook());
-        }
-
-        if (Bukkit.getPluginManager().isPluginEnabled("Nexo")) {
-            this.itemHooks.put("nexo", new NexoHook());
-        }
-
-        if (Bukkit.getPluginManager().isPluginEnabled("Oraxen")) {
-            this.itemHooks.put("oraxen", new OraxenHook());
-        }
-
-        if (Bukkit.getPluginManager().isPluginEnabled("MMOItems")) {
-            this.itemHooks.put("mmoitems", new MMOItemsHook(this));
-        }
-
-        if (Bukkit.getPluginManager().isPluginEnabled("ExecutableItems")) {
-            this.itemHooks.put("executableitems", new ExecutableItemsHook());
-        }
-
-        if (Bukkit.getPluginManager().isPluginEnabled("ExecutableBlocks")) {
-            this.itemHooks.put("executableblocks", new ExecutableBlocksHook());
-        }
-
-        if (Bukkit.getPluginManager().isPluginEnabled("SimpleItemGenerator")) {
-            this.itemHooks.put("simpleitemgenerator", new SimpleItemGeneratorHook(this));
-        }
     }
 
     private void registerMainCommand() {
         final DeluxeMenusCommand command = new DeluxeMenusCommand(this);
-
-        // paper-plugin.yml has no `commands:` block, so the command is registered through the
-        // lifecycle registrar.
-        this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
-                event.registrar().register(
-                        "deluxemenus",
-                        "DeluxeMenus main commands",
-                        List.of("dm", "deluxemenu", "dmenu"),
-                        command
-                ));
+        final var registration = Objects.requireNonNull(getCommand("deluxemenus"), "deluxemenus command");
+        registration.setExecutor(command);
+        registration.setTabCompleter(command);
     }
 
     private void setUpBungeeCordMessaging() {

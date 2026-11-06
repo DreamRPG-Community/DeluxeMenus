@@ -1,7 +1,8 @@
 package com.extendedclip.deluxemenus.utils;
 
-import org.bukkit.Registry;
 import org.bukkit.Sound;
+
+import java.util.Locale;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,6 +20,10 @@ public class SoundUtils {
      * @return the sound, or {@code null} if no sound matches
      */
     public static @Nullable Sound getSound(@NotNull final String name) {
-        return RegistryUtils.byNameOrKey(Registry.SOUNDS, name);
+        try {
+            return Sound.valueOf(name.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 }

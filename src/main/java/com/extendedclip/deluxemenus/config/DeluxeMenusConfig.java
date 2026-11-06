@@ -16,7 +16,6 @@ import com.extendedclip.deluxemenus.menu.options.MenuOptions;
 import com.extendedclip.deluxemenus.requirement.HasEphemeralCooldownRequirement;
 import com.extendedclip.deluxemenus.requirement.HasExpRequirement;
 import com.extendedclip.deluxemenus.requirement.HasItemRequirement;
-import com.extendedclip.deluxemenus.requirement.HasMetaRequirement;
 import com.extendedclip.deluxemenus.requirement.HasMoneyRequirement;
 import com.extendedclip.deluxemenus.requirement.HasPermissionRequirement;
 import com.extendedclip.deluxemenus.requirement.HasPermissionsRequirement;
@@ -33,14 +32,13 @@ import com.extendedclip.deluxemenus.requirement.wrappers.ItemWrapper;
 import com.extendedclip.deluxemenus.utils.DebugLevel;
 import com.extendedclip.deluxemenus.utils.ItemUtils;
 import com.extendedclip.deluxemenus.utils.LocationUtils;
-import com.extendedclip.deluxemenus.utils.RegistryUtils;
 import com.extendedclip.deluxemenus.utils.VersionHelper;
 import com.google.common.base.Enums;
 import com.google.common.primitives.Ints;
 import org.bukkit.DyeColor;
 import org.bukkit.Location;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.Registry;
 import org.bukkit.block.banner.PatternType;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -162,7 +160,7 @@ public class DeluxeMenusConfig {
         FileConfiguration c = plugin.getConfig();
 
         c.options().header(
-                "DeluxeMenus " + plugin.getPluginMeta().getVersion() + " main configuration file" +
+                "DeluxeMenus " + plugin.getDescription().getVersion() + " main configuration file" +
                 "\n" +
                 "\nA full wiki on how to use this plugin can be found at:" +
                 "\nhttps://wiki.helpch.at/helpchat-plugins/deluxemenus" +
@@ -716,9 +714,7 @@ public class DeluxeMenusConfig {
                         continue;
                     }
 
-                    // Resolved through the registry, never PatternType.valueOf: PatternType is
-                    // an enum on 1.20.6 and an interface on 26.2.
-                    final PatternType type = RegistryUtils.byNameOrKey(Registry.BANNER_PATTERN, metaParts[1]);
+                    final PatternType type = legacyBannerPattern(metaParts[1]);
 
                     if (type == null) {
                         plugin.debug(DebugLevel.HIGHEST, Level.WARNING, "Banner Meta for item: " + key + ", meta entry: " + e + " is invalid! Skipping this entry!");
@@ -1109,14 +1105,7 @@ public class DeluxeMenusConfig {
                     break;
                 case HAS_META:
                 case DOES_NOT_HAVE_META:
-                    if (c.contains(rPath + ".key") && c.contains(rPath + ".meta_type") && c.contains(rPath + ".value")) {
-                        String metaKey = c.getString(rPath + ".key");
-                        invert = type == RequirementType.DOES_NOT_HAVE_META;
-                        req = new HasMetaRequirement(plugin, metaKey, c.getString(rPath + ".meta_type").toUpperCase(), c.getString(rPath + ".value"), invert);
-                    } else {
-                        plugin.debug(DebugLevel.HIGHEST, Level.WARNING, "Has Meta requirement at path: " + rPath + " does not contain the key:, meta_type: and/or value: entries!");
-                    }
-                    break;
+                    throw new IllegalArgumentException("Persistent meta requirement is unsupported on Paper 1.12: " + rPath);
                 case STRING_LENGTH:
                     if (c.contains(rPath + ".input") && (c.contains(rPath + ".min") || c.contains(rPath + ".max"))) {
                         int min = c.getInt(rPath + ".min", 0);
@@ -1237,6 +1226,13 @@ public class DeluxeMenusConfig {
             actions.add(action);
         }
 
+        // Opening the inventory is still deferred by Menu.openMenu. Only skip the
+        // redundant action tick for a single direct navigation click.
+        final boolean directNavigation = actions.size() == 1
+                && configPath.endsWith("click_commands")
+                && actions.getFirst().getType() == ActionType.OPEN_GUI_MENU
+                && !actions.getFirst().hasDelay();
+
         ClickHandler handler = null;
 
         if (!actions.isEmpty()) {
@@ -1259,7 +1255,11 @@ public class DeluxeMenusConfig {
                             continue;
                         }
 
-                        actionTask.runTask(plugin);
+                        if (directNavigation && Bukkit.isPrimaryThread()) {
+                            actionTask.run();
+                        } else {
+                            actionTask.runTask(plugin);
+                        }
                     }
                 }
             };
@@ -1360,6 +1360,12 @@ public class DeluxeMenusConfig {
             parsedEnchantments.put(enchantment, level);
         }
         builder.enchantments(parsedEnchantments);
+    }
+
+    private static PatternType legacyBannerPattern(String name) {
+        final PatternType byIdentifier = PatternType.getByIdentifier(name.toLowerCase(Locale.ROOT));
+        if (byIdentifier != null) return byIdentifier;
+        return Enums.getIfPresent(PatternType.class, name.toUpperCase(Locale.ROOT)).orNull();
     }
 
     public void addDamageOptionToBuilder(

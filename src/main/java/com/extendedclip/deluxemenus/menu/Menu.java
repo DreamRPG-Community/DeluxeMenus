@@ -342,9 +342,9 @@ public class Menu {
             Inventory inventory;
 
             if (this.options.type() != InventoryType.CHEST) {
-                inventory = Bukkit.createInventory(holder, this.options.type(), title);
+                inventory = Bukkit.createInventory(holder, this.options.type(), StringUtils.legacy(title));
             } else {
-                inventory = Bukkit.createInventory(holder, this.options.size(), title);
+                inventory = Bukkit.createInventory(holder, this.options.size(), StringUtils.legacy(title));
             }
 
             holder.setInventory(inventory);

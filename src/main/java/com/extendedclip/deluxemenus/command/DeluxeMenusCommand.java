@@ -3,16 +3,15 @@ package com.extendedclip.deluxemenus.command;
 import com.extendedclip.deluxemenus.DeluxeMenus;
 import com.extendedclip.deluxemenus.command.subcommand.*;
 import com.extendedclip.deluxemenus.utils.Messages;
-import io.papermc.paper.command.brigadier.BasicCommand;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +20,7 @@ import java.util.stream.Collectors;
 
 import static net.kyori.adventure.text.Component.text;
 
-public class DeluxeMenusCommand implements BasicCommand {
+public class DeluxeMenusCommand implements TabExecutor {
 
     private static final TextReplacementConfig.Builder VERSION_REPLACER_BUILDER = TextReplacementConfig.builder().matchLiteral("<version>");
     private static final TextReplacementConfig.Builder AUTHORS_REPLACER_BUILDER = TextReplacementConfig.builder().matchLiteral("<authors>");
@@ -35,28 +34,27 @@ public class DeluxeMenusCommand implements BasicCommand {
     }
 
     @Override
-    public void execute(final @NotNull CommandSourceStack source, final @NotNull String[] args) {
-        final CommandSender sender = source.getSender();
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         final List<String> arguments = Arrays.asList(args);
 
         if (arguments.isEmpty()) {
-            plugin.sms(sender, Messages.PLUGIN_VERSION.message().replaceText(VERSION_REPLACER_BUILDER.replacement(plugin.getPluginMeta().getVersion()).build()).replaceText(AUTHORS_REPLACER_BUILDER.replacement(plugin.getPluginMeta().getAuthors().stream().map(author -> text(author, NamedTextColor.WHITE)).collect(Component.toComponent(text(", ", NamedTextColor.GRAY)))).build()));
-            return;
+            plugin.sms(sender, Messages.PLUGIN_VERSION.message().replaceText(VERSION_REPLACER_BUILDER.replacement(plugin.getDescription().getVersion()).build()).replaceText(AUTHORS_REPLACER_BUILDER.replacement(plugin.getDescription().getAuthors().stream().map(author -> text(author, NamedTextColor.WHITE)).collect(Component.toComponent(text(", ", NamedTextColor.GRAY)))).build()));
+            return true;
         }
 
         final SubCommand subCommand = subCommands.get(arguments.get(0).toLowerCase());
 
         if (subCommand != null) {
             subCommand.execute(sender, arguments.subList(1, arguments.size()));
-            return;
+            return true;
         }
 
         plugin.sms(sender, Messages.WRONG_USAGE);
+        return true;
     }
 
     @Override
-    public @NotNull Collection<String> suggest(final @NotNull CommandSourceStack source, final @NotNull String[] args) {
-        final CommandSender sender = source.getSender();
+    public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         final List<String> arguments = Arrays.asList(args);
 
         return subCommands.values()
@@ -74,7 +72,6 @@ public class DeluxeMenusCommand implements BasicCommand {
                 new ExecuteCommand(plugin),
                 new HelpCommand(plugin),
                 new ListCommand(plugin),
-                new MetaCommand(plugin),
                 new OpenCommand(plugin),
                 new RefreshCommand(plugin),
                 new ReloadCommand(plugin)

@@ -2,9 +2,9 @@ package com.extendedclip.deluxemenus.utils;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ArmorMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionType;
+import org.bukkit.potion.PotionData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
@@ -68,7 +68,7 @@ public final class ItemUtils {
      * @return true if the material is a banner, false otherwise
      */
     public static boolean isBanner(@NotNull final Material material) {
-        return material.name().endsWith("_BANNER");
+        return material == Material.BANNER;
     }
 
     /**
@@ -79,10 +79,6 @@ public final class ItemUtils {
      */
     public static boolean isShield(@NotNull final Material material) {
         return material == Material.SHIELD;
-    }
-
-    public static boolean hasArmorMeta(@NotNull final ItemStack itemStack) {
-        return itemStack.getItemMeta() instanceof ArmorMeta;
     }
 
     /**
@@ -105,7 +101,7 @@ public final class ItemUtils {
         final PotionMeta itemMeta = (PotionMeta) itemStack.getItemMeta();
 
         if (itemMeta != null) {
-            itemMeta.setBasePotionType(PotionType.WATER);
+            itemMeta.setBasePotionData(new PotionData(PotionType.WATER));
             itemStack.setItemMeta(itemMeta);
         }
 

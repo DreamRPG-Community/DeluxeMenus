@@ -7,7 +7,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
@@ -101,16 +100,9 @@ public class SkullUtils {
             return head;
         }
 
-        final OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
-        final PlayerProfile profile = offlinePlayer.getPlayerProfile();
-
-        if (!profile.hasTextures()) {
-            // updates the Player Profile and populates textures for offline players - for some reason this doesn't populate when getting the Profile first time
-            headMeta.setPlayerProfile(profile.update().join());
-        } else {
-            headMeta.setOwningPlayer(offlinePlayer);
-        }
-
+        final PlayerProfile profile = Bukkit.createProfile(playerName);
+        profile.complete(true);
+        headMeta.setPlayerProfile(profile);
         head.setItemMeta(headMeta);
         return head;
     }

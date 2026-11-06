@@ -5,9 +5,9 @@ plugins {
 }
 
 // Change to true when releasing
-val release = false
+val release = true
 val majorVersion = "1.14.2"
-val minorVersion = if (release) "Release" else "DEV-" + System.getenv("BUILD_NUMBER")
+val minorVersion = if (release) "Paper112" else "DEV-" + System.getenv("BUILD_NUMBER")
 
 group = "com.extendedclip"
 version = "$majorVersion-$minorVersion"
@@ -24,35 +24,42 @@ repositories {
 }
 
 dependencies {
-    compileOnly(libs.paper)
-
-    compileOnly(libs.vault)
-
-    compileOnly(libs.headdb)
-    compileOnly(libs.headdb.api)
-    compileOnly(libs.craftengine.core)
-    compileOnly(libs.craftengine.bukkit)
-    compileOnly(libs.itemsadder)
-    compileOnly(libs.nexo)
-    compileOnly(libs.oraxen)
-    compileOnly(libs.mythiclib)
-    compileOnly(libs.mmoitems)
-    compileOnly(libs.score)
-    compileOnly(libs.sig)
-
-    compileOnly(libs.papi)
+    compileOnly("com.destroystokyo.paper:paper-api:1.12.2-R0.1-20190714.184133-413")
+    compileOnly(libs.vault) { isTransitive = false }
+    compileOnly(libs.papi) { isTransitive = false }
+    compileOnly("org.jetbrains:annotations:26.1.0")
 
     implementation(libs.nashorn)
     implementation(libs.bstats)
-
-    compileOnly("org.jetbrains:annotations:26.1.0")
+    implementation("net.kyori:adventure-platform-bukkit:4.4.0")
+    implementation("net.kyori:adventure-text-minimessage:4.21.0")
 }
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(25))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
-    disableAutoTargetJvm()
+}
+
+// These integrations depend on APIs which are absent from the Paper 1.12 build.
+sourceSets.main {
+    java {
+        exclude("com/extendedclip/deluxemenus/hooks/CraftEngineHook.java")
+        exclude("com/extendedclip/deluxemenus/hooks/ExecutableBlocksHook.java")
+        exclude("com/extendedclip/deluxemenus/hooks/ExecutableItemsHook.java")
+        exclude("com/extendedclip/deluxemenus/hooks/HeadDatabaseHook.java")
+        exclude("com/extendedclip/deluxemenus/hooks/HeadDBHook.java")
+        exclude("com/extendedclip/deluxemenus/hooks/ItemsAdderHook.java")
+        exclude("com/extendedclip/deluxemenus/hooks/MMOItemsHook.java")
+        exclude("com/extendedclip/deluxemenus/hooks/NexoHook.java")
+        exclude("com/extendedclip/deluxemenus/hooks/OraxenHook.java")
+        exclude("com/extendedclip/deluxemenus/hooks/SimpleItemGeneratorHook.java")
+        exclude("com/extendedclip/deluxemenus/persistentmeta/**")
+        exclude("com/extendedclip/deluxemenus/command/subcommand/MetaCommand.java")
+        exclude("com/extendedclip/deluxemenus/requirement/HasMetaRequirement.java")
+        exclude("com/extendedclip/deluxemenus/dupe/marker/impl/PDCMenuItemMarker.java")
+        exclude("com/extendedclip/deluxemenus/utils/RegistryUtils.java")
+    }
 }
 
 tasks {
@@ -63,12 +70,14 @@ tasks {
     shadowJar {
         relocate("org.objectweb.asm", "com.extendedclip.deluxemenus.libs.asm")
         relocate("org.openjdk.nashorn", "com.extendedclip.deluxemenus.libs.nashorn")
+        relocate("net.kyori", "com.extendedclip.deluxemenus.libs.adventure")
         relocate("org.bstats", "com.extendedclip.deluxemenus.libs.bstats")
         archiveFileName.set("DeluxeMenus-${rootProject.version}.jar")
     }
 
     processResources {
-        filesMatching("paper-plugin.yml") {
+        exclude("paper-plugin.yml")
+        filesMatching("plugin.yml") {
             expand("version" to rootProject.version)
         }
     }

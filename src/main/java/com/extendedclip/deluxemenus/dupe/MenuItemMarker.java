@@ -2,7 +2,7 @@ package com.extendedclip.deluxemenus.dupe;
 
 import com.extendedclip.deluxemenus.DeluxeMenus;
 import com.extendedclip.deluxemenus.dupe.marker.ItemMarker;
-import com.extendedclip.deluxemenus.dupe.marker.impl.PDCMenuItemMarker;
+import com.extendedclip.deluxemenus.dupe.marker.impl.LegacyMenuItemMarker;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -25,7 +25,7 @@ public class MenuItemMarker implements ItemMarker {
 
     public MenuItemMarker(@NotNull final DeluxeMenus plugin, @NotNull final String mark) {
         this.mark = DEFAULT_MARK.equals(mark) || MARK_PATTERN.matcher(mark).matches() ? mark : DEFAULT_MARK;
-        marker = new PDCMenuItemMarker(plugin, this.mark);
+        marker = new LegacyMenuItemMarker(this.mark);
     }
 
     @Override

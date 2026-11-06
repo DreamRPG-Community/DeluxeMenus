@@ -64,7 +64,7 @@ public class UpdateChecker extends Listener {
     plugin.sms(
         player,
         Messages.UPDATE_AVAILABLE.message().replaceText(
-            CURRENT_VERSION_REPLACER_BUILDER.replacement(plugin.getPluginMeta().getVersion()).build()
+            CURRENT_VERSION_REPLACER_BUILDER.replacement(plugin.getDescription().getVersion()).build()
         ).replaceText(
             LATEST_VERSION_REPLACER_BUILDER.replacement(getLatestVersion()).build()
         )
@@ -94,13 +94,13 @@ public class UpdateChecker extends Listener {
       return false;
     }
 
-    if (checkHigher(plugin.getPluginMeta().getVersion(), version)) {
+    if (checkHigher(plugin.getDescription().getVersion(), version)) {
       latestVersion = version;
       updateAvailable = true;
       return true;
     }
 
-    latestVersion = plugin.getPluginMeta().getVersion();
+    latestVersion = plugin.getDescription().getVersion();
     updateAvailable = false;
     return false;
   }

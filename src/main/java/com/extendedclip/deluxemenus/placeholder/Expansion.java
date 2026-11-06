@@ -3,11 +3,9 @@ package com.extendedclip.deluxemenus.placeholder;
 import com.extendedclip.deluxemenus.DeluxeMenus;
 import com.extendedclip.deluxemenus.menu.Menu;
 import com.extendedclip.deluxemenus.menu.options.MenuOptions;
-import com.extendedclip.deluxemenus.persistentmeta.DataType;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.clip.placeholderapi.PlaceholderAPIPlugin;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -35,12 +33,12 @@ public class Expansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getAuthor() {
-        return plugin.getPluginMeta().getAuthors().toString();
+        return plugin.getDescription().getAuthors().toString();
     }
 
     @Override
     public @NotNull String getVersion() {
-        return plugin.getPluginMeta().getVersion();
+        return plugin.getDescription().getVersion();
     }
 
     @Override
@@ -107,71 +105,7 @@ public class Expansion extends PlaceholderExpansion {
             return String.valueOf((remaining + 999L) / 1000L);
         }
 
-        if (!parsedInputLower.startsWith("meta_")) {
-            return null;
-        }
-
-        if (plugin.getPersistentMetaHandler() == null) {
-            return null;
-        }
-
-        // %deluxemenus_meta_has_value_<key>_[type]%
-        if (parsedInputLower.startsWith("meta_has_value_")) {
-            final String hasValueInput = parsedInput.substring(15);
-            final String[] hasValueParts = hasValueInput.split("_", 2);
-
-            if (hasValueParts.length < 1 || hasValueParts.length > 2) {
-                return null;
-            }
-
-            final NamespacedKey key = plugin.getPersistentMetaHandler().getKey(hasValueParts[0]);
-            if (key == null) {
-                return getBooleanAsString(false);
-            }
-
-            if (hasValueParts.length == 1) {
-                return getBooleanAsString(plugin.getPersistentMetaHandler().hasMetaValue(onlinePlayer, key));
-            }
-
-            final DataType<?, ?> type = DataType.getSupportedTypeByName(hasValueParts[1]);
-            if (type == null) {
-                return getBooleanAsString(false);
-            }
-
-            return getBooleanAsString(plugin.getPersistentMetaHandler().hasMetaValue(onlinePlayer, key, type));
-        }
-
-        // %deluxemenus_meta_<key>_<type>_[default-value]%
-        final String getValueInput = parsedInput.substring(5);
-
-        if (!getValueInput.contains("_")) {
-            return null;
-        }
-
-        final String[] parts = getValueInput.split("_", 3);
-
-        if (parts.length < 2) {
-            return null;
-        }
-
-        final NamespacedKey key = plugin.getPersistentMetaHandler().getKey(parts[0]);
-        if (key == null) {
-            return getBooleanAsString(false);
-        }
-
-        final DataType<?, ?> type = DataType.getSupportedTypeByName(parts[1]);
-        if (type == null) {
-            return getBooleanAsString(false);
-        }
-
-        final Object result = plugin.getPersistentMetaHandler().getMetaValue(onlinePlayer, key, type);
-
-        if (result != null) {
-            return String.valueOf(result);
-        }
-
-        // return the default value
-        return parts.length > 2 ? parts[2] : "";
+        return null;
     }
 
     private @NotNull String getBooleanAsString(final boolean value) {

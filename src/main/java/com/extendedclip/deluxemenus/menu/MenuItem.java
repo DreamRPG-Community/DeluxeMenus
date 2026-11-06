@@ -5,39 +5,25 @@ import com.extendedclip.deluxemenus.hooks.ItemHook;
 import com.extendedclip.deluxemenus.menu.options.HeadType;
 import com.extendedclip.deluxemenus.menu.options.LoreAppendMode;
 import com.extendedclip.deluxemenus.menu.options.MenuItemOptions;
-import com.extendedclip.deluxemenus.menu.options.CustomModelDataComponent;
 import com.extendedclip.deluxemenus.utils.DebugLevel;
 import com.extendedclip.deluxemenus.utils.ItemUtils;
 import com.extendedclip.deluxemenus.utils.StringUtils;
-import com.extendedclip.deluxemenus.utils.VersionHelper;
-import com.google.common.collect.ImmutableMultimap;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Material;
-import org.bukkit.Registry;
-import org.bukkit.NamespacedKey;
 import org.bukkit.block.Banner;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.Light;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemRarity;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ArmorMeta;
 import org.bukkit.inventory.meta.BannerMeta;
-import org.bukkit.inventory.meta.BlockDataMeta;
 import org.bukkit.inventory.meta.BlockStateMeta;
-import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.FireworkEffectMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.inventory.meta.trim.ArmorTrim;
-import org.bukkit.inventory.meta.trim.TrimMaterial;
-import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.jetbrains.annotations.NotNull;
@@ -52,7 +38,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -219,11 +204,7 @@ public class MenuItem {
             try {
                 int damage = Integer.parseInt(parsedDamage);
                 if (damage >= 0) {
-                    final ItemMeta meta = itemStack.getItemMeta();
-                    if (meta instanceof Damageable) {
-                        ((Damageable) meta).setDamage(damage);
-                        itemStack.setItemMeta(meta);
-                    }
+                    itemStack.setDurability((short) damage);
                 }
             } catch (final NumberFormatException exception) {
                 plugin.printStacktrace(
@@ -257,27 +238,14 @@ public class MenuItem {
             return itemStack;
         }
 
-        if (this.options.customModelData().isPresent()) {
-            try {
-                final int modelData = Integer.parseInt(holder.setPlaceholdersAndArguments(this.options.customModelData().get()));
-                itemMeta.setCustomModelData(modelData);
-            } catch (final Exception ignored) {
-            }
-        }
-
-        if (VersionHelper.IS_CUSTOM_MODEL_DATA_COMPONENT && this.options.customModelDataComponent().isPresent()) {
-            itemMeta.setCustomModelDataComponent(parseCustomModelDataComponent(this.options.customModelDataComponent().get(), itemMeta.getCustomModelDataComponent(), holder));
-        }
-
         if (this.options.displayName().isPresent()) {
             final String displayName = holder.setPlaceholdersAndArguments(this.options.displayName().get());
-            itemMeta.displayName(StringUtils.colorItemText(displayName, plugin.getGeneralConfig().suppressDefaultItalics()));
+            itemMeta.setDisplayName(StringUtils.legacy(StringUtils.colorItemText(displayName, plugin.getGeneralConfig().suppressDefaultItalics())));
         }
 
         List<Component> lore = new ArrayList<>();
-        // This checks if a lore should be kept from the hooked item, and then if a lore exists on the item
-        // ItemMeta.lore is nullable. In that case, we just create a new ArrayList so we don't add stuff to a null list.
-        List<Component> itemLore = Objects.requireNonNullElse(itemMeta.lore(), new ArrayList<>());
+        // Preserve existing lore for modes which combine the item and menu descriptions.
+        List<Component> itemLore = itemMeta.hasLore() ? itemMeta.getLore().stream().map(StringUtils::color).toList() : List.of();
         // Ensures backwards compatibility with how hooked items are currently handled
         LoreAppendMode mode = this.options.loreAppendMode().orElse(LoreAppendMode.OVERRIDE);
         if (!this.options.hasLore() && this.options.loreAppendMode().isEmpty()) mode = LoreAppendMode.IGNORE;
@@ -298,87 +266,10 @@ public class MenuItem {
                 break;
         }
 
-        itemMeta.lore(lore);
+        itemMeta.setLore(lore.stream().map(StringUtils::legacy).toList());
 
         if (this.options.unbreakable()) {
             itemMeta.setUnbreakable(true);
-        }
-
-        if (this.options.hideTooltip().isPresent()) {
-            String hideTooltip = holder.setPlaceholdersAndArguments(this.options.hideTooltip().get());
-            itemMeta.setHideTooltip(Boolean.parseBoolean(hideTooltip));
-        }
-        if (this.options.enchantmentGlintOverride().isPresent()) {
-            String enchantmentGlintOverride = holder.setPlaceholdersAndArguments(this.options.enchantmentGlintOverride().get());
-            itemMeta.setEnchantmentGlintOverride(Boolean.parseBoolean(enchantmentGlintOverride));
-        }
-        if (this.options.rarity().isPresent()) {
-            String rarity = holder.setPlaceholdersAndArguments(this.options.rarity().get());
-            try {
-                itemMeta.setRarity(ItemRarity.valueOf(rarity.toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                plugin.debug(
-                        DebugLevel.HIGHEST,
-                        Level.WARNING,
-                        "Rarity " + rarity + " is not a valid!"
-                );
-            }
-        }
-
-        if (VersionHelper.HAS_TOOLTIP_STYLE) {
-            if (this.options.tooltipStyle().isPresent()) {
-                NamespacedKey tooltipStyle = NamespacedKey.fromString(holder.setPlaceholdersAndArguments(this.options.tooltipStyle().get()));
-                if (tooltipStyle != null) itemMeta.setTooltipStyle(tooltipStyle);
-            }
-            if (this.options.itemModel().isPresent()) {
-                NamespacedKey itemModel = NamespacedKey.fromString(holder.setPlaceholdersAndArguments(this.options.itemModel().get()));
-                if (itemModel != null) itemMeta.setItemModel(itemModel);
-            }
-        }
-
-        if (ItemUtils.hasArmorMeta(itemStack)) {
-            final Optional<String> trimMaterialName = this.options.trimMaterial();
-            final Optional<String> trimPatternName = this.options.trimPattern();
-
-            if (trimMaterialName.isPresent() && trimPatternName.isPresent()) {
-                final TrimMaterial trimMaterial = Registry.TRIM_MATERIAL.match(holder.setPlaceholdersAndArguments(trimMaterialName.get()));
-                final TrimPattern trimPattern = Registry.TRIM_PATTERN.match(holder.setPlaceholdersAndArguments(trimPatternName.get()));
-
-                if (trimMaterial != null && trimPattern != null) {
-                    final ArmorTrim armorTrim = new ArmorTrim(trimMaterial, trimPattern);
-                    final ArmorMeta armorMeta = (ArmorMeta) itemMeta;
-                    armorMeta.setTrim(armorTrim);
-                    itemStack.setItemMeta(armorMeta);
-                } else {
-                    if (trimMaterial == null) {
-                        plugin.debug(
-                                DebugLevel.HIGHEST,
-                                Level.WARNING,
-                                "Trim material " + trimMaterialName.get() + " is not a valid!"
-                        );
-                    }
-
-                    if (trimPattern == null) {
-                        plugin.debug(
-                                DebugLevel.HIGHEST,
-                                Level.WARNING,
-                                "Trim pattern " + trimPatternName.get() + " is not a valid!"
-                        );
-                    }
-                }
-            } else if (trimMaterialName.isPresent()) {
-                plugin.debug(
-                        DebugLevel.HIGHEST,
-                        Level.WARNING,
-                        "Trim pattern is not set for item with trim material " + trimMaterialName.get()
-                );
-            } else if (trimPatternName.isPresent()) {
-                plugin.debug(
-                        DebugLevel.HIGHEST,
-                        Level.WARNING,
-                        "Trim material is not set for item with trim pattern " + trimPatternName.get()
-                );
-            }
         }
 
         if (itemMeta instanceof LeatherArmorMeta && this.options.rgb().isPresent()) {
@@ -430,47 +321,10 @@ public class MenuItem {
             this.options.enchantments().forEach((enchantment, level) -> itemMeta.addEnchant(enchantment, level, true));
         }
 
-        if (this.options.lightLevel().isPresent() && itemMeta instanceof BlockDataMeta) {
-            final BlockDataMeta blockDataMeta = (BlockDataMeta) itemMeta;
-            final BlockData blockData = blockDataMeta.getBlockData(itemStack.getType());
-            if (blockData instanceof Light) {
-                final Light light = (Light) blockData;
-                final String parsedLightLevel = holder.setPlaceholdersAndArguments(this.options.lightLevel().get());
-                try {
-                    final int lightLevel = Math.min(Integer.parseInt(parsedLightLevel), light.getMaximumLevel());
-                    light.setLevel(Math.max(lightLevel, 0));
-                    if (lightLevel < 0) {
-                        plugin.debug(
-                                DebugLevel.MEDIUM,
-                                Level.WARNING,
-                                "Invalid light level found for light block: " + parsedLightLevel + ". Setting to 0."
-                        );
-                    }
-                    if (lightLevel > light.getMaximumLevel()) {
-                        plugin.debug(
-                                DebugLevel.MEDIUM,
-                                Level.WARNING,
-                                "Invalid light level found for light block: " + parsedLightLevel + ". Setting to " + light.getMaximumLevel() + "."
-                        );
-                    }
-
-                    blockDataMeta.setBlockData(light);
-                } catch (final Exception exception) {
-                    plugin.printStacktrace(
-                            "Invalid light level found for light block: " + parsedLightLevel,
-                            exception
-                    );
-                }
-            }
-        }
-
         if (!this.options.itemFlags().isEmpty()) {
             for (final ItemFlag flag : this.options.itemFlags()) {
                 itemMeta.addItemFlags(flag);
 
-                if (flag == ItemFlag.HIDE_ATTRIBUTES) {
-                    itemMeta.setAttributeModifiers(ImmutableMultimap.of());
-                }
             }
         }
 
@@ -513,50 +367,6 @@ public class MenuItem {
                 .flatMap(Arrays::stream)
                 .map(line -> StringUtils.colorItemText(line, suppressDefaultItalics))
                 .collect(Collectors.toList());
-    }
-
-    private @NotNull org.bukkit.inventory.meta.components.CustomModelDataComponent parseCustomModelDataComponent(
-            @NotNull final CustomModelDataComponent unparsedComponent,
-            @NotNull final org.bukkit.inventory.meta.components.CustomModelDataComponent component,
-            @NotNull final MenuHolder holder
-    ) {
-        if (!unparsedComponent.colors().isEmpty()) {
-            final List<Color> colors = unparsedComponent.colors()
-                    .stream()
-                    .map(holder::setPlaceholdersAndArguments)
-                    .map(this::parseRGBColor)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-            component.setColors(colors);
-        }
-
-        if (!unparsedComponent.flags().isEmpty()) {
-            final List<Boolean> flags = unparsedComponent.flags()
-                    .stream()
-                    .map(holder::setPlaceholdersAndArguments)
-                    .map(Boolean::parseBoolean)
-                    .collect(Collectors.toList());
-            component.setFlags(flags);
-        }
-
-        if (!unparsedComponent.floats().isEmpty()) {
-            final List<Float> floats = unparsedComponent.floats()
-                    .stream()
-                    .map(holder::setPlaceholdersAndArguments)
-                    .map(Float::parseFloat)
-                    .collect(Collectors.toList());
-            component.setFloats(floats);
-        }
-
-        if (!unparsedComponent.strings().isEmpty()) {
-            final List<String> strings = unparsedComponent.strings()
-                    .stream()
-                    .map(holder::setPlaceholdersAndArguments)
-                    .collect(Collectors.toList());
-            component.setStrings(strings);
-        }
-
-        return component;
     }
 
     private @Nullable Color parseRGBColor(@NotNull final String input) {

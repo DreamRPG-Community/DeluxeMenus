@@ -1,6 +1,5 @@
 package com.extendedclip.deluxemenus.utils;
 
-import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import org.bukkit.Bukkit;
@@ -15,7 +14,15 @@ public final class AdventureUtils {
     }
 
     public static void sendJson(@NotNull final CommandSender sender, @NotNull final String json) {
-        sender.sendMessage(fromJson(json));
+        send(sender, fromJson(json));
+    }
+
+    public static void send(CommandSender sender, Component component) {
+        if (sender instanceof org.bukkit.entity.Player player) {
+            player.spigot().sendMessage(net.md_5.bungee.chat.ComponentSerializer.parse(gson.serialize(component)));
+        } else {
+            sender.sendMessage(StringUtils.legacy(component));
+        }
     }
 
     public static Component fromJson(String json) {
@@ -26,6 +33,6 @@ public final class AdventureUtils {
      * Sends a message to every online player. The console is deliberately not included.
      */
     public static void broadcast(@NotNull final Component message) {
-        Audience.audience(Bukkit.getOnlinePlayers()).sendMessage(message);
+        Bukkit.getOnlinePlayers().forEach(player -> send(player, message));
     }
 }

@@ -304,11 +304,11 @@ public class MenuHolder implements InventoryHolder {
                         ItemMeta meta = i.getItemMeta();
 
                         if (item.options().displayNameHasPlaceholders() && item.options().displayName().isPresent()) {
-                            meta.displayName(StringUtils.colorItemText(setPlaceholdersAndArguments(item.options().displayName().get()), plugin.getGeneralConfig().suppressDefaultItalics()));
+                            meta.setDisplayName(StringUtils.legacy(StringUtils.colorItemText(setPlaceholdersAndArguments(item.options().displayName().get()), plugin.getGeneralConfig().suppressDefaultItalics())));
                         }
 
                         if (item.options().loreHasPlaceholders()) {
-                            meta.lore(item.getMenuItemLore(getHolder(), item.options().lore()));
+                            meta.setLore(item.getMenuItemLore(getHolder(), item.options().lore()).stream().map(StringUtils::legacy).toList());
                         }
 
                         i.setItemMeta(meta);

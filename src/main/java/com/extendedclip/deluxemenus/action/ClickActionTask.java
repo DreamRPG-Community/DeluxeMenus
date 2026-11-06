@@ -3,7 +3,6 @@ package com.extendedclip.deluxemenus.action;
 import com.extendedclip.deluxemenus.DeluxeMenus;
 import com.extendedclip.deluxemenus.menu.Menu;
 import com.extendedclip.deluxemenus.menu.MenuHolder;
-import com.extendedclip.deluxemenus.persistentmeta.PersistentMetaHandler;
 import com.extendedclip.deluxemenus.utils.*;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
@@ -67,29 +66,7 @@ public class ClickActionTask extends BukkitRunnable {
 
         switch (actionType) {
             case META:
-                if (plugin.getPersistentMetaHandler() == null) {
-                    plugin.debug(DebugLevel.HIGHEST, Level.INFO, "Meta action not supported on this server version.");
-                    break;
-                }
-                final PersistentMetaHandler.OperationResult result = plugin.getPersistentMetaHandler().parseAndExecuteMetaActionFromString(player, executable);
-                switch (result) {
-                    case INVALID_SYNTAX:
-                        plugin.debug(DebugLevel.HIGHEST, Level.INFO, "Invalid meta action! Make sure you have the right syntax.");
-                        break;
-                    case NEW_VALUE_IS_DIFFERENT_TYPE:
-                        plugin.debug(DebugLevel.HIGHEST, Level.INFO, "Invalid meta action! New value is a different type than the old value!");
-                        break;
-                    case INVALID_TYPE:
-                        plugin.debug(DebugLevel.HIGHEST, Level.INFO, "Invalid meta action! The specified type is not supported for the specified action!");
-                        break;
-                    case EXISTENT_VALUE_IS_DIFFERENT_TYPE:
-                        plugin.debug(DebugLevel.HIGHEST, Level.INFO, "Invalid meta action! Existent value is a different type than the new value!");
-                        break;
-                    case VALUE_NOT_FOUND:
-                    case SUCCESS:
-                    default:
-                        break;
-                }
+                plugin.debug(DebugLevel.HIGHEST, Level.WARNING, "Persistent meta actions require a newer Paper version.");
                 break;
 
             case PLAYER:
@@ -112,7 +89,7 @@ public class ClickActionTask extends BukkitRunnable {
                 break;
 
             case MINI_MESSAGE:
-                player.sendMessage(MiniMessage.miniMessage().deserialize(executable));
+                AdventureUtils.send(player, MiniMessage.miniMessage().deserialize(executable));
                 break;
 
             case MINI_BROADCAST:
@@ -120,11 +97,11 @@ public class ClickActionTask extends BukkitRunnable {
                 break;
 
             case MESSAGE:
-                player.sendMessage(StringUtils.color(executable));
+                AdventureUtils.send(player, StringUtils.color(executable));
                 break;
 
             case ACTION_BAR:
-                player.sendActionBar(StringUtils.color(executable));
+                player.sendActionBar(StringUtils.legacy(StringUtils.color(executable)));
                 break;
 
             case LOG:

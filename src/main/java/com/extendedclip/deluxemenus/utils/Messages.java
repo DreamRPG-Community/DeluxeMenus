@@ -1,6 +1,5 @@
 package com.extendedclip.deluxemenus.utils;
 
-import com.extendedclip.deluxemenus.persistentmeta.DataType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -190,7 +189,7 @@ public enum Messages {
     META_TYPE_UNSUPPORTED(text("Unsupported meta type ", NamedTextColor.RED)
             .append(text("<type>", NamedTextColor.GOLD))
             .append(text("! Supported values are: ", NamedTextColor.RED))
-            .append(text(String.join(", ", DataType.getSupportedTypeNames()), NamedTextColor.GOLD))),
+            .append(text("Unavailable on Paper 1.12", NamedTextColor.GOLD))),
     META_KEY_INVALID(text("An invalid meta key was provided: '", NamedTextColor.RED)
             .append(text("<key>", NamedTextColor.GOLD))
             .append(text("'!", NamedTextColor.RED))),
